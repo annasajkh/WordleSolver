@@ -13,4 +13,8 @@
 	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	</Content>
   </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MoreComplexDataStructures" Version="1.9.2" />
+  </ItemGroup>
 </Project>

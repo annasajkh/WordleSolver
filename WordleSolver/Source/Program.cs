@@ -1,4 +1,4 @@
-﻿using KaimiraGames;
+﻿using MoreComplexDataStructures;
 using System.Text.RegularExpressions;
 
 namespace WordleSolver.Source;
@@ -11,10 +11,12 @@ public enum GuessResultLetterState
     Green
 }
 
+#if DEBUG
 public record struct WordRemoved(string word, GuessResultLetterData wordGuessResultLetterData)
 {
 
 }
+#endif
 
 public record struct GuessResultLetterData(char letter, int letterIndex, GuessResultLetterState letterState)
 {
@@ -74,7 +76,9 @@ public record struct GuessResultLetterData(char letter, int letterIndex, GuessRe
                 break;
         }
 
+#if DEBUG
         wordRemoveds.Add(new WordRemoved(possibleAnswerWord, this));
+#endif
         return false;
     }
 
@@ -84,7 +88,7 @@ public record struct GuessResultLetterData(char letter, int letterIndex, GuessRe
 internal class Program
 {
 
-    public static WeightedList<string> ReducePossibility(string wordleExpression, WeightedList<string> possibleAnswers)
+    public static List<Tuple<string, long>> ReducePossibility(string wordleExpression, List<Tuple<string, long>> possibleAnswersWeights)
     {
         string[] wordleExpressionArr = wordleExpression.Split(" ");
         List<GuessResultLetterData> guessResultLetterDataList = new();
@@ -115,26 +119,26 @@ internal class Program
 
                         default:
                             Console.WriteLine("Invalid wordle expression");
-                            return possibleAnswers;
+                            return possibleAnswersWeights;
                     }
                 }
                 catch (Exception)
                 {
                     Console.WriteLine("Invalid wordle expression");
-                    return possibleAnswers;
+                    return possibleAnswersWeights;
                 }
             }
         }
 
-        WeightedList<string> newPossibleAnswers = new();
+        List<Tuple<string, long>> newPossibleAnswers = new();
 
-        foreach (string possibleAnswer in possibleAnswers)
+        foreach (Tuple<string, long> possibleAnswer in possibleAnswersWeights)
         {
             bool shouldRemove = false;
 
             foreach (GuessResultLetterData guessResultLetterData in guessResultLetterDataList)
             {
-                if (!guessResultLetterData.ShouldKeep(possibleAnswer, guessResultLetterDataList, wordRemoveds))
+                if (!guessResultLetterData.ShouldKeep(possibleAnswer.Item1, guessResultLetterDataList, wordRemoveds))
                 {
                     shouldRemove = true;
                     break;
@@ -143,53 +147,57 @@ internal class Program
 
             if (!shouldRemove)
             {
-                newPossibleAnswers.Add(possibleAnswer, possibleAnswers.GetWeightOf(possibleAnswer));
+                newPossibleAnswers.Add(new Tuple<string, long>(possibleAnswer.Item1, possibleAnswer.Item2));
             }
             else
             {
-#if DEBUG
-                Console.WriteLine($"Removing possible answer \"{possibleAnswer}\"");
-#endif
+                Console.WriteLine($"Removing possible answer {possibleAnswer}");
             }
         }
 
         return newPossibleAnswers;
     }
 
-    static WeightedList<string> possibleAnwsers = new();
-    static WeightedList<string> possibleAnwsersWithNonDuplicateLetters = new();
-    static string firstGuesssWord = "";
+    static WeightedRandomGenerator<string> possibleAnswersGenerator = new();
+    static WeightedRandomGenerator<string> possibleAnswersWithNonDuplicateLettersGenerator = new();
+
+    static List<Tuple<string, long>> possibleAnswersWeights = new();
+    static List<Tuple<string, long>> possibleAnwsersWithNonDuplicateLettersWeights = new();
+
+    static string firstGuessWord = "";
     static string[] wordsRaw = File.ReadAllLines("Assets/Words.txt");
     static string[] wordsWithNonDuplicateLettersRaw = File.ReadAllLines("Assets/WordsWithNonDuplicateLetters.txt");
-    static bool isInit;
-    static List<WordRemoved> wordRemoveds = new();
 
+#if DEBUG
+    static List<WordRemoved> wordRemoveds = new();
+#endif
+    static bool isfirstGuessWord = true;
 
     static void Init()
     {
-        possibleAnwsers.Clear();
+        isfirstGuessWord = true;
+        possibleAnswersWeights.Clear();
+        possibleAnwsersWithNonDuplicateLettersWeights.Clear();
 
         for (int i = 0; i < wordsRaw.Length; i++)
         {
             string[] wordWithFrequency = wordsRaw[i].Split(",");
-            possibleAnwsers.Add(wordWithFrequency[0], int.Parse(wordWithFrequency[1]));
+            possibleAnswersWeights.Add(new Tuple<string, long>(wordWithFrequency[0], long.Parse(wordWithFrequency[1])));
         }
 
-        if (!isInit)
+        for (int i = 0; i < wordsWithNonDuplicateLettersRaw.Length; i++)
         {
-            for (int i = 0; i < wordsWithNonDuplicateLettersRaw.Length; i++)
-            {
-                string[] wordsWithNonDuplicateLettersWithFrequency = wordsWithNonDuplicateLettersRaw[i].Split(",");
-                possibleAnwsersWithNonDuplicateLetters.Add(wordsWithNonDuplicateLettersWithFrequency[0], int.Parse(wordsWithNonDuplicateLettersWithFrequency[1]));
-            }
+            string[] wordsWithNonDuplicateLettersWithFrequency = wordsWithNonDuplicateLettersRaw[i].Split(",");
+            possibleAnwsersWithNonDuplicateLettersWeights.Add(new Tuple<string, long>(wordsWithNonDuplicateLettersWithFrequency[0], int.Parse(wordsWithNonDuplicateLettersWithFrequency[1])));
         }
 
-        firstGuesssWord = possibleAnwsersWithNonDuplicateLetters.Next();
+        possibleAnswersGenerator.SetWeightings(possibleAnswersWeights);
+        possibleAnswersWithNonDuplicateLettersGenerator.SetWeightings(possibleAnwsersWithNonDuplicateLettersWeights);
+
+        firstGuessWord = possibleAnswersWithNonDuplicateLettersGenerator.Generate();
 
         Console.WriteLine();
-        Console.WriteLine($"Your choosen word is \"{firstGuesssWord}\"");
-
-        isInit = true;
+        Console.WriteLine($"Your guess word is \"{firstGuessWord}\"");
     }
 
     static void Main(string[] args)
@@ -237,7 +245,7 @@ How to use:
 
         Init();
 
-        string guessWord = "";
+        string guessWord = firstGuessWord;
 
         while (true)
         {
@@ -273,37 +281,104 @@ How to use:
             }
             else if (guessResult == "alt")
             {
+                isFindAlternative = true;
+
                 Console.WriteLine($"Finding alternative words");
 
-                possibleAnwsers.Remove(guessWord);
-
-                if (possibleAnwsers.Count == 1)
+                if (isFindAlternative && isfirstGuessWord)
                 {
-                    Console.WriteLine($"There is no more alternative that's the last possibility and it is \"{guessWord}\"");
-                    Init();
-                    continue;
+#if DEBUG
+                    Console.WriteLine("Removing from possibleAnswersWithNonDuplicateLetters");
+#endif
+
+                    for (int i = possibleAnwsersWithNonDuplicateLettersWeights.Count - 1; i >= 0; i--)
+                    {
+                        if (possibleAnwsersWithNonDuplicateLettersWeights[i].Item1 == guessWord)
+                        {
+                            possibleAnwsersWithNonDuplicateLettersWeights.Remove(new Tuple<string, long>(possibleAnwsersWithNonDuplicateLettersWeights[i].Item1, possibleAnwsersWithNonDuplicateLettersWeights[i].Item2));
+                        }
+                    }
+
+                    possibleAnswersWithNonDuplicateLettersGenerator.SetWeightings(possibleAnwsersWithNonDuplicateLettersWeights);
+                }
+                else
+                {
+#if DEBUG
+                    Console.WriteLine("Removing from possibleAnswers");
+#endif
+                    for (int i = possibleAnswersWeights.Count - 1; i >= 0; i--)
+                    {
+                        if (possibleAnswersWeights[i].Item1 == guessWord)
+                        {
+                            possibleAnswersWeights.Remove(new Tuple<string, long>(possibleAnswersWeights[i].Item1, possibleAnswersWeights[i].Item2));
+                        }
+                    }
+
+                    possibleAnswersGenerator.SetWeightings(possibleAnswersWeights);
                 }
 
-                isFindAlternative = true;
+                if (isFindAlternative && isfirstGuessWord)
+                {
+                    if (possibleAnswersWithNonDuplicateLettersGenerator.WeightingCount == 1)
+                    {
+#if DEBUG
+                        Console.WriteLine("Getting from possibleAnwsersWithNonDuplicateLetters");
+#endif
+                        Console.WriteLine($"There is no more alternative that's the last possibility and it is \"{guessWord}\"");
+                        Init();
+                        continue;
+                    }
+                }
+                else
+                {
+                    if (possibleAnswersGenerator.WeightingCount == 1)
+                    {
+#if DEBUG
+                        Console.WriteLine("Getting from possibleAnswers");
+#endif
+                        Console.WriteLine($"There is no more alternative that's the last possibility and it is \"{guessWord}\"");
+                        Init();
+                        continue;
+                    }
+                }
+
             }
             else if (guessResult.Split(" ").Length != 10)
             {
                 Console.WriteLine("Invalid command or expression");
-                possibleAnwsers.Remove(guessWord);
+                continue;
             }
 
             if (!isFindAlternative)
             {
-                possibleAnwsers = ReducePossibility(guessResult, possibleAnwsers);
+                possibleAnswersWeights = ReducePossibility(guessResult, possibleAnswersWeights);
+                possibleAnswersGenerator.SetWeightings(possibleAnswersWeights);
+                isfirstGuessWord = false;
             }
 
             try
             {
-                guessWord = possibleAnwsers.Next();
-                Console.WriteLine($"Your guess word is \"{guessWord}\"");
+                if (isfirstGuessWord && isFindAlternative)
+                {
+#if DEBUG
+                    Console.WriteLine("Getting from possibleAnwsersWithNonDuplicateLetters");
+#endif
+                    guessWord = possibleAnswersWithNonDuplicateLettersGenerator.Generate();
+                    Console.WriteLine($"Your guess word is \"{guessWord}\"");
+                }
+                else
+                {
+#if DEBUG
+                    Console.WriteLine("Getting from possibleAnswers");
+#endif
+                    guessWord = possibleAnswersGenerator.Generate();
+                    Console.WriteLine($"Your guess word is \"{guessWord}\"");
+                }
             }
-            catch (Exception)
+            catch (Exception exception)
             {
+
+#if DEBUG
                 Console.WriteLine("Word answser: ");
                 string wordAnswer = Console.ReadLine()!;
 
@@ -314,6 +389,9 @@ How to use:
                         WordRemoved wordCausingError = wordRemoved;
                     }
                 }
+#else
+                Console.WriteLine($"Error: {exception}");
+#endif
             }
 
         }
