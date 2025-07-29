@@ -224,7 +224,7 @@ How to use:
     n = grey
     e = grey
 
-    you can also type these word in the guess result:
+    you can also type these commands in the guess result:
 
     Guess result: reset
     Reset the program
