@@ -11,16 +11,9 @@ public enum GuessResultLetterState
     Green
 }
 
-#if DEBUG
-public record struct WordRemoved(string word, GuessResultLetterData wordGuessResultLetterData)
-{
-
-}
-#endif
-
 public record struct GuessResultLetterData(char letter, int letterIndex, GuessResultLetterState letterState)
 {
-    public bool ShouldKeep(string possibleAnswerWord, List<GuessResultLetterData> guessResultLetterDataList, List<WordRemoved> wordRemoveds)
+    public bool ShouldKeep(string possibleAnswerWord, List<GuessResultLetterData> guessResultLetterDataList)
     {
         switch (letterState)
         {
@@ -75,10 +68,6 @@ public record struct GuessResultLetterData(char letter, int letterIndex, GuessRe
                 }
                 break;
         }
-
-#if DEBUG
-        wordRemoveds.Add(new WordRemoved(possibleAnswerWord, this));
-#endif
         return false;
     }
 
@@ -138,7 +127,7 @@ internal class Program
 
             foreach (GuessResultLetterData guessResultLetterData in guessResultLetterDataList)
             {
-                if (!guessResultLetterData.ShouldKeep(possibleAnswer.Item1, guessResultLetterDataList, wordRemoveds))
+                if (!guessResultLetterData.ShouldKeep(possibleAnswer.Item1, guessResultLetterDataList))
                 {
                     shouldRemove = true;
                     break;
@@ -168,9 +157,6 @@ internal class Program
     static string[] wordsRaw = File.ReadAllLines("Assets/Words.txt");
     static string[] wordsWithNonDuplicateLettersRaw = File.ReadAllLines("Assets/WordsWithNonDuplicateLetters.txt");
 
-#if DEBUG
-    static List<WordRemoved> wordRemoveds = new();
-#endif
     static bool isfirstGuessWord = true;
 
     static void Init()
@@ -377,21 +363,7 @@ How to use:
             }
             catch (Exception exception)
             {
-
-#if DEBUG
-                Console.WriteLine("Word answser: ");
-                string wordAnswer = Console.ReadLine()!;
-
-                foreach (WordRemoved wordRemoved in wordRemoveds)
-                {
-                    if (wordRemoved.word == wordAnswer)
-                    {
-                        WordRemoved wordCausingError = wordRemoved;
-                    }
-                }
-#else
                 Console.WriteLine($"Error: {exception}");
-#endif
             }
 
         }
