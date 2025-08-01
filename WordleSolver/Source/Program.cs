@@ -151,19 +151,19 @@ internal class Program
     static WeightedRandomGenerator<string> possibleAnswersWithNonDuplicateLettersGenerator = new();
 
     static List<Tuple<string, long>> possibleAnswersWeights = new();
-    static List<Tuple<string, long>> possibleAnwsersWithNonDuplicateLettersWeights = new();
+    static List<Tuple<string, long>> possibleAnswersWithNonDuplicateLettersWeights = new();
 
     static string firstGuessWord = "";
-    static string[] wordsRaw = File.ReadAllLines("Assets/Words.txt");
-    static string[] wordsWithNonDuplicateLettersRaw = File.ReadAllLines("Assets/WordsWithNonDuplicateLetters.txt");
+    static string[] wordsRaw = File.ReadAllLines("Assets/Words/Words.txt");
+    static string[] wordsWithNonDuplicateLettersRaw = File.ReadAllLines("Assets/Words/WordsWithNonDuplicateLetters.txt");
 
-    static bool isfirstGuessWord = true;
+    static bool isFirstGuessWord = true;
 
     static void Init()
     {
-        isfirstGuessWord = true;
+        isFirstGuessWord = true;
         possibleAnswersWeights.Clear();
-        possibleAnwsersWithNonDuplicateLettersWeights.Clear();
+        possibleAnswersWithNonDuplicateLettersWeights.Clear();
 
         for (int i = 0; i < wordsRaw.Length; i++)
         {
@@ -174,11 +174,11 @@ internal class Program
         for (int i = 0; i < wordsWithNonDuplicateLettersRaw.Length; i++)
         {
             string[] wordsWithNonDuplicateLettersWithFrequency = wordsWithNonDuplicateLettersRaw[i].Split(",");
-            possibleAnwsersWithNonDuplicateLettersWeights.Add(new Tuple<string, long>(wordsWithNonDuplicateLettersWithFrequency[0], int.Parse(wordsWithNonDuplicateLettersWithFrequency[1])));
+            possibleAnswersWithNonDuplicateLettersWeights.Add(new Tuple<string, long>(wordsWithNonDuplicateLettersWithFrequency[0], int.Parse(wordsWithNonDuplicateLettersWithFrequency[1])));
         }
 
         possibleAnswersGenerator.SetWeightings(possibleAnswersWeights);
-        possibleAnswersWithNonDuplicateLettersGenerator.SetWeightings(possibleAnwsersWithNonDuplicateLettersWeights);
+        possibleAnswersWithNonDuplicateLettersGenerator.SetWeightings(possibleAnswersWithNonDuplicateLettersWeights);
 
         firstGuessWord = possibleAnswersWithNonDuplicateLettersGenerator.Generate();
 
@@ -224,7 +224,7 @@ How to use:
 
 
     Guess result: alt
-    If choosen guess word is not in the wordle word list then you can use this for finding alternative word
+    If chosen guess word is not in the wordle word list then you can use this for finding alternative word
 """.Trim());
 
         Console.WriteLine();
@@ -271,21 +271,21 @@ How to use:
 
                 Console.WriteLine($"Finding alternative words");
 
-                if (isFindAlternative && isfirstGuessWord)
+                if (isFindAlternative && isFirstGuessWord)
                 {
 #if DEBUG
                     Console.WriteLine("Removing from possibleAnswersWithNonDuplicateLetters");
 #endif
 
-                    for (int i = possibleAnwsersWithNonDuplicateLettersWeights.Count - 1; i >= 0; i--)
+                    for (int i = possibleAnswersWithNonDuplicateLettersWeights.Count - 1; i >= 0; i--)
                     {
-                        if (possibleAnwsersWithNonDuplicateLettersWeights[i].Item1 == guessWord)
+                        if (possibleAnswersWithNonDuplicateLettersWeights[i].Item1 == guessWord)
                         {
-                            possibleAnwsersWithNonDuplicateLettersWeights.Remove(new Tuple<string, long>(possibleAnwsersWithNonDuplicateLettersWeights[i].Item1, possibleAnwsersWithNonDuplicateLettersWeights[i].Item2));
+                            possibleAnswersWithNonDuplicateLettersWeights.Remove(new Tuple<string, long>(possibleAnswersWithNonDuplicateLettersWeights[i].Item1, possibleAnswersWithNonDuplicateLettersWeights[i].Item2));
                         }
                     }
 
-                    possibleAnswersWithNonDuplicateLettersGenerator.SetWeightings(possibleAnwsersWithNonDuplicateLettersWeights);
+                    possibleAnswersWithNonDuplicateLettersGenerator.SetWeightings(possibleAnswersWithNonDuplicateLettersWeights);
                 }
                 else
                 {
@@ -303,12 +303,12 @@ How to use:
                     possibleAnswersGenerator.SetWeightings(possibleAnswersWeights);
                 }
 
-                if (isFindAlternative && isfirstGuessWord)
+                if (isFindAlternative && isFirstGuessWord)
                 {
                     if (possibleAnswersWithNonDuplicateLettersGenerator.WeightingCount == 1)
                     {
 #if DEBUG
-                        Console.WriteLine("Getting from possibleAnwsersWithNonDuplicateLetters");
+                        Console.WriteLine("Getting from possibleAnswersWithNonDuplicateLetters");
 #endif
                         Console.WriteLine($"There is no more alternative that's the last possibility and it is \"{guessWord}\"");
                         Init();
@@ -339,15 +339,15 @@ How to use:
             {
                 possibleAnswersWeights = ReducePossibility(guessResult, possibleAnswersWeights);
                 possibleAnswersGenerator.SetWeightings(possibleAnswersWeights);
-                isfirstGuessWord = false;
+                isFirstGuessWord = false;
             }
 
             try
             {
-                if (isfirstGuessWord && isFindAlternative)
+                if (isFirstGuessWord && isFindAlternative)
                 {
 #if DEBUG
-                    Console.WriteLine("Getting from possibleAnwsersWithNonDuplicateLetters");
+                    Console.WriteLine("Getting from possibleAnswersWithNonDuplicateLetters");
 #endif
                     guessWord = possibleAnswersWithNonDuplicateLettersGenerator.Generate();
                     Console.WriteLine($"Your guess word is \"{guessWord}\"");
